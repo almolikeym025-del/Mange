@@ -1,0 +1,2 @@
+# Mange
+Simple money management 
