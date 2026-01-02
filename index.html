@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>إدارة مصروفات العزبة</title>
 <style>
 body{font-family:Tahoma;background:#f5f5f5;margin:0}
 .container{max-width:1400px;margin:auto;padding:16px}
-h1,h3{text-align:center}
-.card{background:#fff;padding:16px;border-radius:8px;margin-bottom:12px}
-input,textarea,button,select{width:100%;padding:8px;margin:4px 0}
-button{background:#2e7d32;color:#fff;border:none;border-radius:6px}
+h1,h3{text-align:center;margin-bottom:8px}
+.tabs{display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.tabs button{padding:10px;margin:2px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer}
+.page{display:none;background:#fff;padding:16px;border-radius:8px;margin-bottom:12px}
+.page.active{display:block}
+input,textarea,select,button,table{width:100%;padding:8px;margin:4px 0}
+button{cursor:pointer}
 table{width:100%;border-collapse:collapse;margin-top:8px}
 th,td{border:1px solid #ccc;padding:6px;text-align:center}
 th{background:#eee}
@@ -20,183 +23,207 @@ th{background:#eee}
 <div class="container">
 <h1>إدارة مصروفات العزبة</h1>
 
-<div class="card">
-<h3>الحسابات</h3>
-<input id="userName" placeholder="اسم الشخص" />
-<input id="userBalance" type="number" placeholder="الرصيد الابتدائي" />
-<button onclick="addUser()">إضافة حساب</button>
-<table>
-<thead><tr><th>الاسم</th><th>الرصيد</th><th>حذف</th></tr></thead>
-<tbody id="users"></tbody>
-</table>
+<!-- تبويبات الصفحات -->
+<div class="tabs">
+  <button onclick="showPage('usersPage')">الحسابات</button>
+  <button onclick="showPage('balancePage')">تعديل الرصيد</button>
+  <button onclick="showPage('expensePage')">إضافة مصروف</button>
+  <button onclick="showPage('matrixPage')">كشف الأعمدة</button>
+  <button onclick="showPage('reportPage')">كشف نهاية الشهر</button>
 </div>
 
-<div class="card">
-<h3>تعديل رصيد</h3>
-<select id="balanceUser"></select>
-<input id="balanceAmount" type="number" placeholder="المبلغ" />
-<select id="balanceType">
-  <option value="add">إضافة</option>
-  <option value="sub">خصم</option>
-</select>
-<textarea id="balanceNote" placeholder="ملاحظة"></textarea>
-<button onclick="adjustBalance()">تنفيذ</button>
+<!-- صفحات التطبيق -->
+<div id="usersPage" class="page">
+  <h3>الحسابات</h3>
+  <input id="userName" placeholder="اسم الشخص">
+  <input id="userBalance" type="number" placeholder="الرصيد الابتدائي">
+  <button onclick="addUser()">إضافة حساب</button>
+  <table>
+    <thead><tr><th>الاسم</th><th>الرصيد</th><th>حذف</th></tr></thead>
+    <tbody id="users"></tbody>
+  </table>
 </div>
 
-<div class="card">
-<h3>إضافة مصروف</h3>
-<input id="expenseAmount" type="number" placeholder="المبلغ" />
-<textarea id="expenseNote" placeholder="ملاحظة"></textarea>
-<div id="participants"></div>
-<button onclick="selectAll()">تحديد الكل</button>
-<button onclick="addExpense()">تسجيل</button>
+<div id="balancePage" class="page">
+  <h3>تعديل رصيد</h3>
+  <select id="balanceUser"></select>
+  <input id="balanceAmount" type="number" placeholder="المبلغ">
+  <select id="balanceType">
+    <option value="add">إضافة</option>
+    <option value="sub">خصم</option>
+  </select>
+  <textarea id="balanceNote" placeholder="ملاحظة"></textarea>
+  <button onclick="adjustBalance()">تنفيذ</button>
 </div>
 
-<div class="card">
-<h3>كشف الأعمدة التفصيلي</h3>
-<table id="matrix"></table>
+<div id="expensePage" class="page">
+  <h3>إضافة مصروف</h3>
+  <input id="expenseAmount" type="number" placeholder="المبلغ">
+  <textarea id="expenseNote" placeholder="ملاحظة"></textarea>
+  <div id="participants"></div>
+  <button onclick="selectAll()">تحديد الكل</button>
+  <button onclick="addExpense()">تسجيل</button>
 </div>
 
-<div class="card">
-<h3>كشف نهاية الشهر</h3>
-<table id="report"></table>
-<button onclick="newMonth()">بداية شهر جديد</button>
-<button onclick="exportPDF()">تصدير PDF</button>
+<div id="matrixPage" class="page">
+  <h3>كشف الأعمدة التفصيلي</h3>
+  <table id="matrix"></table>
+  <button onclick="exportMatrixPDF()">تصدير PDF</button>
 </div>
+
+<div id="reportPage" class="page">
+  <h3>كشف نهاية الشهر</h3>
+  <table id="report"></table>
+  <button onclick="newMonth()">بداية شهر جديد</button>
+  <button onclick="exportReportPDF()">تصدير PDF</button>
+</div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script>
+// البيانات
 let users = JSON.parse(localStorage.getItem('users') || '[]');
 let ops = JSON.parse(localStorage.getItem('ops') || '[]');
 
+// حفظ البيانات
 function save(){
   localStorage.setItem('users', JSON.stringify(users));
   localStorage.setItem('ops', JSON.stringify(ops));
 }
 
-function render(){
-  const u = document.getElementById('users');
-  const p = document.getElementById('participants');
-  const s = document.getElementById('balanceUser');
-  u.innerHTML = '';
-  p.innerHTML = '';
-  s.innerHTML = '';
-
-  users.forEach((x,i)=>{
-    u.innerHTML += `<tr><td>${x.name}</td><td>${x.balance.toFixed(2)}</td><td><button onclick="removeUser(${i})">حذف</button></td></tr>`;
-    p.innerHTML += `<label><input type='checkbox' value='${i}'> ${x.name}</label>`;
-    s.innerHTML += `<option value='${i}'>${x.name}</option>`;
-  });
-
-  renderMatrix();
-  renderReport();
-  save();
+// عرض الصفحة المطلوبة
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
+// إضافة مستخدم
 function addUser(){
-  if(users.length >= 10) return;
+  if(users.length>=10) return;
   const n = userName.value;
   const b = parseFloat(userBalance.value);
-  if(!n || isNaN(b)) return;
-  users.push({name:n, balance:b});
-  userName.value='';
-  userBalance.value='';
+  if(!n||isNaN(b)) return;
+  users.push({name:n,balance:b});
+  userName.value=''; userBalance.value='';
   render();
 }
 
+// حذف مستخدم
 function removeUser(i){
   users.splice(i,1);
   render();
 }
 
+// تعديل الرصيد
 function adjustBalance(){
-  const i = parseInt(balanceUser.value);
-  const amt = parseFloat(balanceAmount.value);
+  const i=parseInt(balanceUser.value);
+  const amt=parseFloat(balanceAmount.value);
   if(isNaN(amt)) return;
   const type = balanceType.value;
   const note = balanceNote.value;
-  const val = type === 'add' ? amt : -amt;
-
-  users[i].balance += val;
-  ops.push({type:'bal', user:i, amount:val, note:note, date:new Date().toLocaleDateString('ar-YE')});
-
-  balanceAmount.value='';
-  balanceNote.value='';
+  const val = type==='add'? amt : -amt;
+  users[i].balance+=val;
+  ops.push({type:'bal',user:i,amount:val,note:note,date:new Date().toLocaleDateString('ar-YE')});
+  balanceAmount.value=''; balanceNote.value='';
   render();
 }
 
+// تحديد الكل
 function selectAll(){
   document.querySelectorAll('#participants input').forEach(c=>c.checked=true);
 }
 
+// إضافة مصروف
 function addExpense(){
-  const amt = parseFloat(expenseAmount.value);
-  const note = expenseNote.value;
-  const sel = [...document.querySelectorAll('#participants input:checked')];
-  if(isNaN(amt) || sel.length === 0) return;
-
-  const share = amt / sel.length;
-  sel.forEach(c => users[c.value].balance -= share);
-  ops.push({type:'exp', amount:amt, share:share, parts: sel.map(c => parseInt(c.value)), note:note, date:new Date().toLocaleDateString('ar-YE')});
-
-  expenseAmount.value='';
-  expenseNote.value='';
+  const amt=parseFloat(expenseAmount.value);
+  const note=expenseNote.value;
+  const sel=[...document.querySelectorAll('#participants input:checked')];
+  if(isNaN(amt) || sel.length===0) return;
+  const share = amt/sel.length;
+  sel.forEach(c=>users[c.value].balance-=share);
+  ops.push({type:'exp',amount:amt,share:share,parts: sel.map(c=>parseInt(c.value)),note:note,date:new Date().toLocaleDateString('ar-YE')});
+  expenseAmount.value=''; expenseNote.value='';
   render();
 }
 
+// عرض المصفوفة التفصيلية
 function renderMatrix(){
-  const t = document.getElementById('matrix');
-  let h = '<tr><th>التاريخ</th><th>الملاحظة</th>';
-  users.forEach(u => h += `<th>${u.name}</th>`);
-  h += '</tr>';
-
-  ops.forEach(o => {
-    h += `<tr><td>${o.date}</td><td>${o.note || ''}</td>`;
+  const t=document.getElementById('matrix');
+  let h='<tr><th>التاريخ</th><th>الملاحظة</th>';
+  users.forEach(u=>h+=`<th>${u.name}</th>`);
+  h+='</tr>';
+  ops.forEach(o=>{
+    h+='<tr><td>'+o.date+'</td><td>'+ (o.note||'') +'</td>';
     users.forEach((u,ui)=>{
-      let v = '';
-      if(o.type === 'exp' && o.parts.includes(ui)) v = '-' + o.share.toFixed(2);
-      if(o.type === 'bal' && o.user === ui) v = o.amount.toFixed(2);
-      h += `<td>${v}</td>`;
+      let v='';
+      if(o.type==='exp' && o.parts.includes(ui)) v='-'+o.share.toFixed(2);
+      if(o.type==='bal' && o.user===ui) v=o.amount.toFixed(2);
+      h+='<td>'+v+'</td>';
     });
-    h += '</tr>';
+    h+='</tr>';
   });
-
-  t.innerHTML = h;
+  t.innerHTML=h;
 }
 
+// عرض التقرير النهائي
 function renderReport(){
-  const t = document.getElementById('report');
-  let h = '<tr><th>الشخص</th><th>الرصيد</th><th>الحالة</th></tr>';
-  users.forEach(u => {
-    h += `<tr><td>${u.name}</td><td>${u.balance.toFixed(2)}</td><td>${u.balance >= 0 ? 'دائن' : 'مدين'}</td></tr>`;
+  const t=document.getElementById('report');
+  let h='<tr><th>الشخص</th><th>الرصيد</th><th>الحالة</th></tr>';
+  users.forEach(u=>{
+    h+='<tr><td>'+u.name+'</td><td>'+u.balance.toFixed(2)+'</td><td>'+(u.balance>=0?'دائن':'مدين')+'</td></tr>';
   });
-  t.innerHTML = h;
+  t.innerHTML=h;
 }
 
+// التحديث الكامل
+function render(){
+  const u=document.getElementById('users');
+  const p=document.getElementById('participants');
+  const s=document.getElementById('balanceUser');
+  u.innerHTML=''; p.innerHTML=''; s.innerHTML='';
+  users.forEach((x,i)=>{
+    u.innerHTML+=`<tr><td>${x.name}</td><td>${x.balance.toFixed(2)}</td><td><button onclick="removeUser(${i})">حذف</button></td></tr>`;
+    p.innerHTML+=`<label><input type='checkbox' value='${i}'> ${x.name}</label>`;
+    s.innerHTML+=`<option value='${i}'>${x.name}</option>`;
+  });
+  renderMatrix();
+  renderReport();
+  save();
+}
+
+// بداية شهر جديد
 function newMonth(){
   if(confirm('سيتم ترحيل الرصيد وبداية شهر جديد')){
-    ops = [];
+    ops=[];
     save();
     render();
   }
 }
 
-function exportPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape'});
-  let y = 10;
-
+// تصدير كشف المصفوفة PDF
+function exportMatrixPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape'});
   doc.setFontSize(14);
-  doc.text('كشف المصروفات التفصيلي', 105, y, {align:'center'});
-  y += 10;
-
-  let matrixTable = document.getElementById('matrix');
-  doc.autoTable({html: matrixTable, startY: y});
-  doc.save('kashf.pdf');
+  doc.text('كشف الأعمدة التفصيلي',105,10,{align:'center'});
+  doc.autoTable({html:document.getElementById('matrix'),startY:20});
+  doc.save('matrix.pdf');
 }
 
+// تصدير التقرير PDF
+function exportReportPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape'});
+  doc.setFontSize(14);
+  doc.text('كشف نهاية الشهر',105,10,{align:'center'});
+  doc.autoTable({html:document.getElementById('report'),startY:20});
+  doc.save('report.pdf');
+}
+
+// افتراضي عرض صفحة الحسابات أولاً
+showPage('usersPage');
 render();
 </script>
 </body>
