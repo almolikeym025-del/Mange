@@ -183,11 +183,19 @@ function render(){
   const p=document.getElementById('participants');
   const s=document.getElementById('balanceUser');
   u.innerHTML=''; p.innerHTML=''; s.innerHTML='';
+
   users.forEach((x,i)=>{
     u.innerHTML+=`<tr><td>${x.name}</td><td>${x.balance.toFixed(2)}</td><td><button onclick="removeUser(${i})">حذف</button></td></tr>`;
-    p.innerHTML+=`<label><input type='checkbox' value='${i}'> ${x.name}</label>`;
+
+    // تلوين المشاركين حسب الرصيد في صفحة إضافة المصروفات
+    let color='black';
+    if(x.balance>0) color='green';
+    else if(x.balance<0) color='red';
+    p.innerHTML+=`<label style="color:${color}"><input type='checkbox' value='${i}'> ${x.name} (${x.balance.toFixed(2)})</label>`;
+
     s.innerHTML+=`<option value='${i}'>${x.name}</option>`;
   });
+
   renderMatrix();
   renderReport();
   save();
